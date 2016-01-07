@@ -88,14 +88,14 @@ $ORACLE_HOME/bin/rman target $USR/$PASSWD $OPTIONS <<EOF
 	CONFIGURE SNAPSHOT CONTROLFILE NAME TO '$BKPDIR/snapcf_gpic.f';	
 
 	## Database Backup
-  backup as backupset database plus archivelog delete input;
+  	backup as backupset database plus archivelog delete input;
 	
 	## Backup Maintenance
-  Crosscheck archivelog all;
-  delete noprompt expired archivelog all;
-  crosscheck backup;
-  delete noprompt expired backup;
-  delete noprompt obsolete;
+  	Crosscheck archivelog all;
+  	delete noprompt expired archivelog all;
+  	crosscheck backup;
+  	delete noprompt expired backup;
+  	delete noprompt obsolete;
 	
 EOF
 if [[ -z $(cat $TMPFILE |egrep -i '(ORA-|ERROR|RMAN-)') ]]; then
