@@ -41,7 +41,7 @@ RET=${RET:-30}
 ## Oracle environment setting
 export ORACLE_SID=$SID
 export ORACLE_HOME=$(/usr/local/bin/dbhome $SID)
-[ ! -d $ORACLE_HOME ] && warn_msg "Not found Oracle Home. Exit.." && exit 1
+[[ ! -d $ORACLE_HOME ]] && warn_msg "Not found Oracle Home. Exit.." && exit 1
 
 ## SQL File
 cat > $SQLFILE <<EOF
@@ -53,14 +53,14 @@ EOF
 $ORACLE_HOME/bin/sqlplus '/ as sysdba' < $SQLFILE >$TMPFILE
 ARC_PATH=$(cat $TMPFILE|grep "Archive destination"|sed 's/Archive destination//g'|sed 's/ *//g')
 ## For recovery file dest path
-if [ $ARC_PATH == "USE_DB_RECOVERY_FILE_DEST" ]; then
+if [[ $ARC_PATH == "USE_DB_RECOVERY_FILE_DEST" ]]; then
   echo "set head off" > $SQLFILE
   echo "select value from v\$parameter where name='db_recovery_file_dest';" >> $SQLFILE
   ARC_PATH=$($ORACLE_HOME/bin/sqlplus -S '/ as sysdba' < $SQLFILE)
 fi
 ## if it's filesystem path
-if [ -d $ARC_PATH ] ; then
-  if [ $(find $ARC_PATH/ -mtime +$RET -type f |wc -l ) -ge 1 ]; then
+if [[ -d $ARC_PATH ]] ; then
+  if [[ $(find $ARC_PATH/ -mtime +$RET -type f |wc -l ) -ge 1 ]]; then
     info_msg "Start to to purge archivelog file with retention=$RET days under $ARC_PATH"
     find $ARC_PATH/ -mtime +$RET -type f |xargs ls -l >> $LOGFILE
     find $ARC_PATH/ -mtime +$RET -type f|xargs rm -f 2>>$LOGFILE
@@ -68,7 +68,7 @@ if [ -d $ARC_PATH ] ; then
     info_msg "No files need be purged(retention=$RET days)"
   fi
 ## For ASM path
-elif [ $(echo $ARC_PATH|awk '{if(substr($0,1,1)=="+") print 1}') == 1 ]; then
+elif [[ $(echo $ARC_PATH|awk '{if(substr($0,1,1)=="+") print 1}') == 1 ]]; then
   info_msg "Start to to purge archivelog file with retention=$RET days under $ARC_PATH"
   echo "delete noprompt archivelog until time 'sysdate -$RET';" > $SQLFILE
   $ORACLE_HOME/bin/rman target / cmdfile=$SQLFILE append log=$LOGFILE 2>>$LOGFILE
@@ -77,12 +77,12 @@ else
 fi
   
 ## Remove temporary file
-[ -f $TMPFILE ] && rm $TMPFILE
-[ -f $SQLFILE ] && rm $SQLFILE 
+[[ -f $TMPFILE ]] && rm $TMPFILE
+[[ -f $SQLFILE ]] && rm $SQLFILE 
 
 ## Rotate logfile 
 MAX_LOG_SIZE=10240000 # 10MB
-if [ $(ls -l $LOGFILE|awk '{print $5}') -ge $MAX_LOG_SIZE ]; then
+if [[ $(ls -l $LOGFILE|awk '{print $5}') -ge $MAX_LOG_SIZE ]]; then
   info_msg "Cutting off logfile $LOGFILE"
   mv $LOGFILE $LOGFILE.old || warn_msg "Move file $LOGFILE failure"
 fi
