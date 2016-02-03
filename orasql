@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+######################################################################################
+## Program: orasql
+## Purpose: It used to run SQL script in Oracle database under <app> user in Linux/Unix platform 
+##          It used to hide password while it uses sqlplus command 
+## Usage:   orasql [-L|-S] <ORAUSER> <SQL File>
+## Required:  <app> user has configured with Oracle environment
+##+           orapass - used to get Oracle account password
+## Version: 1.0
+## Author:  rekcah865@gmail.com
+## Revision History
+##+         Wei.Shen	v1.0	Feb 2 2016	Creation
+##
+######################################################################################
+
+## For variables and error check
+set -o nounset
+set -o errexit
+
+## Debug output for tracking
+# set -o xtrace
+
+## Program information
+PP=$(cd $(dirname $0) && pwd)
+PN=$(basename $0)
+
+## Function list
+usage() { echo "$PN [Options:-S/-L] <ORAUSER> <SQL File>";}
+
+## Required Command check
+BINS=(echo /usr/local/bin/orapass /usr/local/bin/dbhome)
+for BIN in "${BINS[@]}"; do
+	[[ ! "$(command -v "$BIN")" ]] && echo "$BIN is not installed. Exit.." && exit 1
+done
+
+## Oracle environment set
+ORACLE_SID=${ORACLE_SID:? ORACLE_SID not set!}
+[[ -z $ORACLE_HOME ]] && /usr/local/bin/dbhome $ORACLE_SID
+export ORACLE_HOME=${ORACLE_HOME:? ORACLE_HOME not set!}
+export LD_LIBRARY_PATH=${ORACLE_HOME}/lib:${LD_LIBRARY_PATH}
+export PATH=${ORACLE_HOME}/bin:${PATH}
+
+## Initial variable
+local OPTION=
+local ORAUSER=
+local PASSWD=
+
+if [[ $# < 2 ]]; then
+	echo "Too few parameter passed in!"
+	usage 
+else
+	# Check whether first parameter is a optional parameter eg -S,-L
+	#[[ -z ${1%%-*} ]] && OPTION=$1 && shift 1
+	while [[ -z ${1%%-*} ]] ;do
+		OPTION=$(echo "$OPTION $1") && shift 1
+	done
+	## Next parameter should be user name
+	ORAUSER=$1
+	if [[ "${ORAUSER}" == "/" ]] ; then
+		## For dba roles
+		ORAUSER="/ as sysdba"
+	else
+		PASSWD=$(/usr/local/bin/orapass ${ORAUSER})
+		[[ -z $PASSWD ]] && echo "Can not get password of $ORAUSER from orapass! Exit.." && exit 1
+	fi
+	## Remove user parameter
+	shift 1
+	## Send rest of parameters to run in sqlplus
+	PARAMETER=${*}
+	
+	## Run SQLPLUS iwth parameters
+	if [[ -z $PASSWD ]]; then
+		sqlplus $OPTION $ORAUSER $PARAMETER		
+	else
+		echo $PASSWD|sqlplus $OPTION $ORAUSER $PARAMETER
+	fi
+fi
+
+exit 0
